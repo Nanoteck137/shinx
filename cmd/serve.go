@@ -11,9 +11,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func render(c echo.Context, status int, t templ.Component) error {
+func render(c echo.Context, status int, component templ.Component) error {
 	c.Response().Writer.WriteHeader(status)
-	err := t.Render(context.Background(), c.Response().Writer)
+	err := component.Render(context.Background(), c.Response().Writer)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "failed to render response template")
 	}
