@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"github.com/nanoteck137/shinx/cmd"
+)
 
 func main() {
-	fmt.Println("Hello World")
+	cmd.Execute()
 }
