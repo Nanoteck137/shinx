@@ -5,8 +5,9 @@ templ Layout(content templ.Component) {
 	<html lang="en">
 		<head>
 			<title>Shinx</title>
-			<meta charset="UTF-8" />
-			<meta name="viewport" content="width=device-width, initial-scale=1" />
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<link href="/public/style.css" rel="stylesheet"/>
 		</head>
 		<body>
 			@content
@@ -15,5 +16,5 @@ templ Layout(content templ.Component) {
 }
 
 templ Index() {
-	<p>Hello World</p>
+	<p class="text-red-200">Hello World</p>
 }

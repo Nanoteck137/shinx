@@ -7,16 +7,19 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
+	"github.com/nanoteck137/shinx/public"
 	"github.com/nanoteck137/shinx/view"
 	"github.com/spf13/cobra"
 )
 
 func render(c echo.Context, status int, component templ.Component) error {
 	c.Response().Writer.WriteHeader(status)
+
 	err := component.Render(context.Background(), c.Response().Writer)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "failed to render response template")
 	}
+
 	return nil
 }
 
@@ -38,6 +41,8 @@ var serveCmd = &cobra.Command{
 		// _ = db
 
 		app := echo.New()
+
+		app.StaticFS("/public", public.Content)
 
 		app.GET("/", func(c echo.Context) error {
 			return render(c, 200, view.Layout(view.Index()))
