@@ -56,12 +56,14 @@ var serveCmd = &cobra.Command{
 			return render(c, 200, view.Layout(view.Index()))
 		})
 
+		app.GET("/setup", func(c echo.Context) error {
+			return nil
+		})
+
 		app.GET("/login", func(c echo.Context) error {
 			cookie, _ := c.Cookie("access-token")
 			if cookie != nil {
-				c.Response().Header().Set("HX-Redirect", "/")
-				c.Response().WriteHeader(204)
-				return nil
+				return c.Redirect(http.StatusPermanentRedirect, "/")
 			}
 
 			return render(c, 200, view.Layout(view.Login(view.LoginError{})))
@@ -87,6 +89,7 @@ var serveCmd = &cobra.Command{
 			cookie := &http.Cookie{
 				Name:    "access-token",
 				Value:   "logged in",
+				SameSite: http.SameSiteStrictMode,
 				Expires: time.Now().Add(1 * time.Minute),
 			}
 

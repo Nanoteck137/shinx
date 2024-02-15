@@ -44,3 +44,18 @@ templ Login(err LoginError) {
 		<button class="bg-blue-400 rounded py-2" type="submit">Login</button>
 	</form>
 }
+
+templ Setup() {
+	<form hx-post="/login" class="flex flex-col container mx-auto gap-2">
+		<p>Setup Admin Account</p>
+		<div class="flex flex-col">
+			<label for="username">Username</label>
+			<input id="username" type="text" name="username" value=""/>
+		</div>
+		<div class="flex flex-col">
+			<label for="password">Password</label>
+			<input id="password" type="password" name="password" value=""/>
+		</div>
+		<button class="bg-blue-400 rounded py-2" type="submit">Login</button>
+	</form>
+}
