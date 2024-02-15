@@ -8,6 +8,7 @@ templ Layout(content templ.Component) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<link href="/public/style.css" rel="stylesheet"/>
+			<script src="/public/htmx.min.js"></script>
 		</head>
 		<body>
 			@content
@@ -19,11 +20,27 @@ templ Index() {
 	<p class="text-red-200">Hello World</p>
 }
 
-templ Login() {
-	<div>
-		<form>
-			<input type="text" name="username" value=""/>
-			<input type="password" name="password" value=""/>
-		</form>
-	</div>
+type LoginError struct {
+	Username string
+	Password string
+}
+
+templ Login(err LoginError) {
+	<form hx-post="/login" class="flex flex-col container mx-auto gap-2">
+		<div class="flex flex-col">
+			<label for="username">Username</label>
+			<input id="username" type="text" name="username" value=""/>
+			if err.Username != "" {
+				<p class="text-red-400">{err.Username}</p>
+			}
+		</div>
+		<div class="flex flex-col">
+			<label for="password">Password</label>
+			<input id="password" type="password" name="password" value=""/>
+			if err.Password != "" {
+				<p class="text-red-400">{err.Password}</p>
+			}
+		</div>
+		<button class="bg-blue-400 rounded py-2" type="submit">Login</button>
+	</form>
 }
