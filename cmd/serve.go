@@ -45,7 +45,16 @@ var serveCmd = &cobra.Command{
 		app.StaticFS("/public", public.Content)
 
 		app.GET("/", func(c echo.Context) error {
+			cookie, _ := c.Cookie("access_token")
+			if cookie == nil {
+				return c.Redirect(http.StatusPermanentRedirect, "/login")
+			}
+
 			return render(c, 200, view.Layout(view.Index()))
+		})
+
+		app.GET("/login", func(c echo.Context) error {
+			return render(c, 200, view.Layout(view.Login()))
 		})
 
 		err := app.Start(":3000")
