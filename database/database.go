@@ -51,10 +51,16 @@ func (db *Database) CreateProject(ctx context.Context, id string) error {
 	return nil
 }
 
+type User struct {
+	Id       string 
+	Username string 
+	Password string
+}
+
 func (db *Database) CreateUser(ctx context.Context, username, password string) (string, error) {
 	userId := utils.CreateId()
 	ds := dialect.Insert("users").Rows(goqu.Record{
-		"id": userId,
+		"id":       userId,
 		"username": username,
 		"password": password,
 	}).Prepared(true)
@@ -69,11 +75,32 @@ func (db *Database) CreateUser(ctx context.Context, username, password string) (
 	return userId, nil
 }
 
+func (database *Database) GetUserByUsername(ctx context.Context, username string) (User, error) {
+	ds := dialect.From("users").
+		Select("id", "username", "password").
+		Where(goqu.C("username").Eq(username)).
+		Prepared(true)
+
+	sql, params, err := ds.ToSQL()
+	if err != nil {
+		return User{}, err
+	}
+
+	row := database.conn.QueryRow(ctx, sql, params...)
+	var user User
+	err = row.Scan(&user.Id, &user.Username, &user.Password)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
 func (db *Database) CreateLink(ctx context.Context, projectId, userId string) (string, error) {
 	linkId := utils.CreateId()
 	ds := dialect.Insert("project_user_links").Rows(goqu.Record{
-		"id": linkId,
-		"user_id": userId,
+		"id":         linkId,
+		"user_id":    userId,
 		"project_id": projectId,
 	}).Prepared(true)
 

@@ -2,13 +2,19 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
-	"time"
+	"net/url"
+	"os"
 
 	"github.com/a-h/templ"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"github.com/kr/pretty"
 	"github.com/labstack/echo/v4"
+	"github.com/nanoteck137/shinx/database"
 	"github.com/nanoteck137/shinx/public"
 	"github.com/nanoteck137/shinx/view"
 	"github.com/spf13/cobra"
@@ -28,19 +34,19 @@ func render(c echo.Context, status int, component templ.Component) error {
 var serveCmd = &cobra.Command{
 	Use: "serve",
 	Run: func(cmd *cobra.Command, args []string) {
-		// godotenv.Load()
-		//
-		// dbUrl := os.Getenv("DB_URL")
-		// if dbUrl == "" {
-		// 	log.Fatal("DB_URL not set")
-		// }
-		//
-		// db, err := pgxpool.New(context.Background(), dbUrl)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		//
-		// _ = db
+		godotenv.Load()
+
+		dbUrl := os.Getenv("DB_URL")
+		if dbUrl == "" {
+			log.Fatal("DB_URL not set")
+		}
+
+		conn, err := pgxpool.New(context.Background(), dbUrl)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		db := database.New(conn)
 
 		app := echo.New()
 
@@ -56,17 +62,8 @@ var serveCmd = &cobra.Command{
 			return render(c, 200, view.Layout(view.Index()))
 		})
 
-		app.GET("/setup", func(c echo.Context) error {
-			return nil
-		})
-
 		app.GET("/login", func(c echo.Context) error {
-			cookie, _ := c.Cookie("access-token")
-			if cookie != nil {
-				return c.Redirect(http.StatusPermanentRedirect, "/")
-			}
-
-			return render(c, 200, view.Layout(view.Login(view.LoginError{})))
+			return render(c, 200, view.Layout(view.AuthLogin("")))
 		})
 
 		app.POST("/login", func(c echo.Context) error {
@@ -81,27 +78,40 @@ var serveCmd = &cobra.Command{
 				return err
 			}
 
-			if body.Username != "admin" && body.Password != "admin" {
-				loginErr := view.LoginError{Username: "Incorrect user credentials"}
-				return render(c, 200, view.Login(loginErr))
+			pretty.Println(body)
+
+			url, err := url.Parse(c.Request().Header.Get("HX-Current-URL"))
+			if err != nil {
+				return err
 			}
 
-			cookie := &http.Cookie{
-				Name:    "access-token",
-				Value:   "logged in",
-				SameSite: http.SameSiteStrictMode,
-				Expires: time.Now().Add(1 * time.Minute),
+			user, err := db.GetUserByUsername(context.Background(), body.Username)
+			if err != nil {
+				if err == pgx.ErrNoRows {
+					return render(c, 200, view.AuthLogin("Incorrect username or password"))
+				}
+
+				return err
 			}
 
-			c.SetCookie(cookie)
+			if user.Password != body.Password {
+				return render(c, 200, view.AuthLogin("Incorrect username or password"))
+			}
 
-			c.Response().Header().Set("HX-Redirect", "/")
+			pretty.Println(user)
+
+			projectId := url.Query().Get("projectId")
+			fmt.Printf("projectId: %v\n", projectId)
+
+			redirectUrl := url.Query().Get("redirectUrl")
+			fmt.Printf("redirectUrl: %v\n", redirectUrl)
+
+			c.Response().Header().Set("HX-Redirect", redirectUrl + "?code=123")
 			c.Response().WriteHeader(204)
-
 			return nil
 		})
 
-		err := app.Start(":3000")
+		err = app.Start(":3000")
 		if err != nil {
 			log.Fatal(err)
 		}
