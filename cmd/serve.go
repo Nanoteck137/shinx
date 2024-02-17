@@ -16,7 +16,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/nanoteck137/shinx/database"
 	"github.com/nanoteck137/shinx/public"
+	"github.com/nanoteck137/shinx/utils"
 	"github.com/nanoteck137/shinx/view"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cobra"
 )
 
@@ -47,6 +49,30 @@ var serveCmd = &cobra.Command{
 		}
 
 		db := database.New(conn)
+
+		redisUrl := os.Getenv("REDIS_URL")
+		if redisUrl == "" {
+			log.Fatal("REDIS_URL not set")
+		}
+
+		url, err := url.Parse(redisUrl)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if url.Scheme != "redis" {
+			log.Fatal("Redis url needs to start with 'redis://'")
+		}
+
+		addr := url.Host
+		username := url.User.Username()
+		password, _ := url.User.Password()
+
+		red := redis.NewClient(&redis.Options{
+			Addr: addr,
+			Username: username,
+			Password: password,
+		})
 
 		app := echo.New()
 
@@ -98,6 +124,13 @@ var serveCmd = &cobra.Command{
 				return render(c, 200, view.AuthLogin("Incorrect username or password"))
 			}
 
+			code := utils.CreateId()
+
+			err = red.Set(context.Background(), fmt.Sprintf("code:%s", code), user.Id, 0).Err()
+			if err != nil {
+				return err
+			}
+
 			pretty.Println(user)
 
 			projectId := url.Query().Get("projectId")
@@ -106,7 +139,7 @@ var serveCmd = &cobra.Command{
 			redirectUrl := url.Query().Get("redirectUrl")
 			fmt.Printf("redirectUrl: %v\n", redirectUrl)
 
-			c.Response().Header().Set("HX-Redirect", redirectUrl + "?code=123")
+			c.Response().Header().Set("HX-Redirect", fmt.Sprintf("%s?code=%s", redirectUrl, code))
 			c.Response().WriteHeader(204)
 			return nil
 		})
